@@ -1,0 +1,11 @@
+{
+  "presets": ["latest", "stage-2", "stage-3", "react"],
+  "plugins": [
+    "add-module-exports"
+  ],
+  "env": {
+    "start": {
+      "presets": ["react-hmre"]
+    }
+  }
+}
