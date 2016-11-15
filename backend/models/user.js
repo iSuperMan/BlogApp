@@ -1,6 +1,8 @@
 import crypto from 'crypto'
 import validator from 'validator'
 import mongoose, { Schema } from '../libs/mongoose'
+import series from 'async/series'
+import parallel from 'async/parallel'
 
 /**
  * Check email to existing and return
@@ -9,9 +11,9 @@ import mongoose, { Schema } from '../libs/mongoose'
  * @param  {String} email
  * @param  {Function} respond - callback with bool result of check
  */
-export const emailUniqueValidator = (email, respond) => {
+export const emailUniqueValidator = function(email, respond) {
     User.findOne({email}, (err, user) => {
-        if(err || user) {
+        if(err || user && user.id !== this.id) {
             return respond(false)
         }
         respond(true)
@@ -25,9 +27,9 @@ export const emailUniqueValidator = (email, respond) => {
  * @param  {String} username
  * @param  {Function} respond - callback with bool result of check
  */
-export const usernameUniqueValidator = (username, respond) => {
+export const usernameUniqueValidator = function(username, respond) {
     User.findOne({username}, (err, user) => {
-        if(err || user) {
+        if(err || user && user.id !== this.id) {
             return respond(false)
         }
         respond(true)
@@ -72,7 +74,15 @@ const schema = new Schema({
     },
     salt: {
         type: String
-    }
+    },
+    followers: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    following: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+    }]
 }, {
 	timestamps: true
 })
@@ -131,6 +141,96 @@ schema.methods.encryptPassword = function(password) {
  */
 schema.methods.checkPassword = function(password) {
     return this.encryptPassword(password) === this.hashedPassword
+}
+
+/**
+ * Follow to user
+ * 
+ * @param  {User}   taraget to follow
+ * @param  {Function}   callback
+ */
+schema.methods.followTo = function(user, callback) {
+    series([
+        cb => this.pushToFollowing(user, cb),
+        cb => user.pushToFollowers(this, cb)
+    ], callback)
+}
+
+/**
+ * Unfollow to user
+ * 
+ * @param  {[type]}   user  target to unfollow
+ * @param  {Function}   callback
+ */
+schema.methods.unfollowTo = function(user, callback) {
+    series([
+        cb => this.pullFromFollowing(user, cb),
+        cb => user.pullFromFollowers(this, cb)
+    ], callback)
+}
+
+/**
+ * Add user to following list
+ * 
+ * @param  {User}   followingUser
+ * @param  {Function} callback
+ */
+schema.methods.pushToFollowing = function(followingUser, callback) {
+    this.following.push(followingUser)
+    this.save(err => {
+        if(err) {
+            return callback(err);
+        }
+        callback(null, followingUser);
+    })
+}
+
+/**
+ * Remove user from following list
+ * 
+ * @param  {User} followingUser
+ * @param  {Function} callback
+ */
+schema.methods.pullFromFollowing = function(followingUser, callback) {
+    this.following.pull(followingUser)
+    this.save(err => {
+        if(err) {
+            return callback(err);
+        }
+        callback(null, followingUser);
+    })
+}
+
+/**
+ * Add user to followers list
+ * 
+ * @param  {User} follower 
+ * @param  {Function} callback
+ */
+schema.methods.pushToFollowers = function(follower, callback) {
+    this.followers.push(follower)
+    this.save(err => {
+        if(err) {
+            return callback(err);
+        }
+        callback(null, follower);
+    })
+}
+
+/**
+ * Remove user from followers list
+ * 
+ * @param  {User} follower
+ * @param  {Function} callback
+ */
+schema.methods.pullFromFollowers = function(follower, callback) {
+    this.followers.pull(follower);
+    this.save(err => {
+        if(err) {
+            return callback(err)
+        }
+        callback(null, follower);
+    })
 }
 
 const User = mongoose.model('User', schema)

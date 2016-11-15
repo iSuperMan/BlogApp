@@ -3,6 +3,12 @@ import setSalt from './setSalt'
 import checkPassword from './checkPassword'
 import save from './save'
 import validators from './validators';
+import pushToFollowers from './pushToFollowers'
+import pullFromFollowers from './pullFromFollowers'
+import pushToFollowing from './pushToFollowing'
+import pullFromFollowing from './pullFromFollowing'
+import followTo from './followTo'
+import unfollowTo from './unfollowTo'
 import User from '../../../backend/models/user'
 import { expect } from 'chai'
 import sinon from 'sinon'
@@ -13,6 +19,12 @@ export default () => {
 	describe('user.checkPassword()', checkPassword)
 	describe('custom validators', validators)
 	describe('user.save()', save)
+	describe('user.pushToFollowers()', pushToFollowers);
+	describe('user.pullFromFollowers()', pullFromFollowers);
+	describe('user.pushToFollowing()', pushToFollowing);
+	describe('user.pullFromFollowing()', pullFromFollowing);
+	describe('user.followTo()', followTo);
+	describe('user.unfolloTo()', unfollowTo);
 
 	describe('virtual field `user.password`', () => {
 		it('should set `salt` and `hashedPassword` on setter', () => {
