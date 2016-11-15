@@ -1,26 +1,27 @@
 import express from 'express'
 import http from 'http'
 import errorhandler from 'errorhandler'
-// import config from './config'
+import config from '../config'
 import bodyParser from 'body-parser'
-// import routes from './routes'
-import path from "path";
-import webpack from './webpack';
+import routes from './routes'
+import path from 'path'
+import webpack from './webpack'
 
 const app = express()
-app.set('port', 8080)
+app.set('port', config.get('port'))
 
-webpack(app);
+webpack(app)
 
 app.use(bodyParser.json()) // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
 app.use(express.static('public'))
 
-// app.use('/api', routes)
+app.use('/api', routes)
 
 app.get(/.*/, (req, res) => {
-    const pathToIndex = path.resolve(__dirname, '../public/index.html')
-    res.sendFile(pathToIndex)
+    res.sendFile(
+    	path.resolve(__dirname, '../public/index.html')
+	)
 })
 
 if (process.env.NODE_ENV === 'development') {

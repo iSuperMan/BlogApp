@@ -1,0 +1,24 @@
+{
+	"port": 8080,
+	"publicDir": "/public",
+	"mongoose":{
+	    "uri": "mongodb://localhost/blogApp",
+	    "options": {
+	      	"server": {
+	        	"socketOptions": {
+	          		"keepAlive": 1
+	        	}
+	      	}
+	    }
+	},
+  	"mongoose-test": {
+	    "uri": "mongodb://localhost/blogAppTest",
+    	"options": {
+      		"server": {
+        		"socketOptions": {
+	          		"keepAlive": 1
+	        	}
+	      	}
+	    }
+	}
+}
