@@ -13,9 +13,9 @@ export default () => {
 	it('should save user without error', done => {
 		const expectedUser = userFactory.getUser1()
 		const { email, username } = expectedUser
-
+		
 		User.create(expectedUser, (err, user) => {
-			expect(err).to.be.null
+			expect(err).to.not.exist
 			expect(user.email).to.equal(email)
 			expect(user.username).to.equal(username)
 			done()

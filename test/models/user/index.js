@@ -19,12 +19,6 @@ export default () => {
 	describe('user.checkPassword()', checkPassword)
 	describe('custom validators', validators)
 	describe('user.save()', save)
-	describe('user.pushToFollowers()', pushToFollowers);
-	describe('user.pullFromFollowers()', pullFromFollowers);
-	describe('user.pushToFollowing()', pushToFollowing);
-	describe('user.pullFromFollowing()', pullFromFollowing);
-	describe('user.followTo()', followTo);
-	describe('user.unfolloTo()', unfollowTo);
 
 	describe('virtual field `user.password`', () => {
 		it('should set `salt` and `hashedPassword` on setter', () => {
@@ -62,4 +56,11 @@ export default () => {
 			sinon.assert.callOrder(setSaltSpy, encryptPassword);
 		}))
 	})
+
+	describe('user.pushToFollowers()', pushToFollowers);
+	describe('user.pullFromFollowers()', pullFromFollowers);
+	describe('user.pushToFollowing()', pushToFollowing);
+	describe('user.pullFromFollowing()', pullFromFollowing);
+	describe('user.followTo()', followTo);
+	describe('user.unfolloTo()', unfollowTo);
 }
