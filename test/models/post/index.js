@@ -1,4 +1,5 @@
 import save from './save'
+import createDraft from './createDraft'
 import { expect } from 'chai'
 import Post from '../../../backend/models/post'
 import PostContent from '../../../backend/models/postContent'
@@ -52,4 +53,6 @@ export default () => {
 			expect(post.lastEditedDate).to.not.equal(oldValue)
 		})
 	})
+
+	describe('post.createDraft()', createDraft)
 }

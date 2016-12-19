@@ -1,4 +1,5 @@
 import mongoose, { Schema } from '../libs/mongoose'
+import waterfall from 'async/waterfall'
 
 const schema = new Schema({
 	title: {
@@ -43,6 +44,39 @@ schema.virtual('coverImage')
 		}
 		
 	})
+
+/**
+ * Assign new values to instance props and save it
+ * 
+ * @param  {Object}   postContentData 	data from client
+ * @param  {Function} callback
+ */
+schema.methods.updateInstance = function(postContentData, callback) {
+	this.title = postContentData.title;
+	this.body = postContentData.body;
+	this.coverImage = postContentData.coverImage;
+
+	this.save(err => {
+		if(err) {
+			return callback(err)
+		}
+
+		callback(null, this)
+	})
+}
+
+/**
+ * Find instance by id, assign new values to finding instance and save it
+ * 
+ * @param  {ObjectId}   id			  _id of postContent
+ * @param  {Object}   postContentData  data from client
+ * @param  {Function} callback 
+ */
+schema.statics.updateInstanceById = (id, postContentData, callback) =>
+	waterfall([
+		cb => PostContent.findById(id, cb),
+		(postContent, cb) => postContent.updateInstance(postContent, cb)	
+	], callback)
 
 const PostContent = mongoose.model('PostContent', schema)
 

@@ -1,6 +1,7 @@
 import mongoose, { Schema } from '../libs/mongoose'
 import PostContent from './postContent'
 import waterfall from 'async/waterfall';
+import series from 'async/series';
 
 const CHANGE_TYPE_AUTOSAVED = 'autosaved'
 const CHANGE_TYPE_FIRST_PUBLISHED = 'first-published'
@@ -109,6 +110,70 @@ schema.methods.updateLastEditedDate = function() {
 }
 
 /**
+ * Get last modifiction of post's content from changesHistory array
+ * 
+ * @return {Object|Null}
+ */
+schema.methods.getLastChange = function() {
+	const length = this.changesHistory.length
+	
+	if(length > 0) {
+		return this.changesHistory[length - 1]
+	}
+	
+	return null
+}
+
+/**
+ * Check is i should update last change instance or
+ * i should create new instance 
+ * 
+ * @return {Boolean}
+ */
+schema.methods.isShouldUpdateLastChange = function() {
+	const lastChange = this.getLastChange()
+
+	// should update only if change's type equals 'autosaved'	
+	if(!lastChange || lastChange.type !== CHANGE_TYPE_AUTOSAVED) {
+		return false;
+	}
+
+	const dateDiff = (new Date()) - lastChange.updatedAt;
+	return dateDiff < 60000; // should update if passed no more than 1 min
+}
+
+schema.methods.updateLastChange = function(contentData, callback) {
+	const lastChange = this.lastChange()
+	PostContent.updateInstanceById(lastChange._content, contentData, callback);
+}
+
+schema.methods.createAutosavedChange = function(contentData, callback) {
+	waterfall([
+		cb => PostContent.create(contentData, cb),
+		(postContent, cb) => {
+			this.pushAutosavedContentToChangesHistory(postContent)
+			cb()
+		} 
+	], callback)
+}
+
+schema.methods.editDraft = function(contentData, callback) {
+	series([
+		cb => {
+			if(this.isShouldUpdateLastChange()) {
+				this.updateLastChange(contentData, cb)
+			} else {
+				this.createAutosavedChange(contentData, cb)
+			}			
+		},
+		cb => {
+			this.updateLastEditedDate()
+			this.save(cb)
+		}
+	], callback)
+}
+
+/**
  * Create draft of post
  * 
  * @param  {User}   author      
@@ -117,7 +182,7 @@ schema.methods.updateLastEditedDate = function() {
  * @param  {Function} callback   
  */
 schema.statics.createDraft = (author, contentData, callback) => {
-	watefall([
+	waterfall([
 
 		// create postContent instance
 		cb => PostContent.create(contentData, cb),
@@ -132,7 +197,13 @@ schema.statics.createDraft = (author, contentData, callback) => {
 			post.pushAutosavedContentToChangesHistory(postContent)
 			post.updateLastEditedDate()
 
-			post.save(cb)
+			post.save(err => {
+				if(err) {
+					return cb(err)
+				}
+
+				cb(null, post)
+			})
 		}
 	], callback)
 }
