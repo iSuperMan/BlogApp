@@ -233,6 +233,23 @@ schema.methods.pullFromFollowers = function(follower, callback) {
     })
 }
 
+if (!schema.options.toObject) schema.options.toObject = {};
+schema.options.toObject.transform = function (doc, ret, options) {
+    // remove the _id of every document before returning the result
+    delete ret._id;
+    delete ret.salt;
+    delete ret.hashedPassword;
+    delete ret.updatedAt;
+    delete ret.createdAt;
+
+    if(options.mode && options.mode === 'basic') {
+        delete ret.following;
+        delete ret.followers;
+    }
+
+    return ret;
+}
+
 const User = mongoose.model('User', schema)
 
 export default User

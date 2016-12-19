@@ -1,9 +1,83 @@
 import express from 'express'
+import bodyClean from '../../middlewares/bodyClean'
+import User from '../../models/user'
+import authToken from '../../libs/authToken'
 
 const router = express.Router()
 
-router.post('/signup', (req, res) => {
-	res.send();
-})
+router.get('/test', [
+	(req, res, next) => {
+		res.sendResponse({
+			hello: 'world'
+		})
+	}
+])
+
+router.post('/login', [
+	(req, res, next) => {
+		const { email, password } = req.body
+
+		User.findOne({ email }, (err, user) => {
+			if(err) {
+				return next(err)
+			}
+
+			if(!user || !user.checkPassword(password || '')) {
+				return res.sendResponse({
+					success: false
+				})
+			} else {
+				authToken.generate(user, (err, token) => {
+					if(err) {
+						return next(err)
+					}
+
+					return res.sendResponse({
+						success: true,
+						user: user.toObject({mode: 'basic'}),
+						token
+					})
+				})
+			}
+		})
+	}
+])
+
+router.post('/signup', [
+	
+	bodyClean([
+		'email',
+		'username',
+		'password',
+		'fullName'
+	]),
+	
+	(req, res, next) => {
+		User.create(req.body, (err, user) => {
+			if(err) {
+				if(err.errors) {
+					// ошибки валидации
+					return res.sendResponse({
+						success: false,
+						errors: err.errors
+					})
+				}
+				return next(err)
+			}
+
+			authToken.generate(user, (err, token) => {
+				if(err) {
+					return next(err)
+				}
+
+				return res.sendResponse({
+					success: true,
+					user: user.toObject({mode: 'basic'}),
+					token
+				})
+			})
+		})
+	},
+])
 
 export default router
