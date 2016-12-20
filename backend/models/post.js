@@ -68,7 +68,10 @@ const schema = new Schema({
 		type: Number,
 		default: 0
 	},
-	publishedDate: {
+	firstPublishedDate: {
+		type: Date
+	},
+	lastPublishedDate: {
 		type: Date
 	},
 	lastEditedDate: {
@@ -81,24 +84,32 @@ const schema = new Schema({
 /**
  * Push new postContent to changesHistory array
  * 
- * @param  {PostContent} postContent
+ * @param  {ObjectId} postContentId
  * @param  {String} type 	the type of change
  *                        
  */
-schema.methods.pushContentToChangesHistory = function(postContent, type) {
+schema.methods.pushContentToChangesHistory = function(postContentId, type) {
 	this.changesHistory.push({
 		type,
-		_content: postContent.id
+		_content: postContentId
 	})
 }
 
 /**
  * Push new postContent with `autosaved` type to changesHistory array
  * 
- * @param  {PostContent} postContent
+ * @param  {PostContentId} postContentId
  */
-schema.methods.pushAutosavedContentToChangesHistory = function(postContent) {
-	this.pushContentToChangesHistory(postContent, CHANGE_TYPE_AUTOSAVED);
+schema.methods.pushAutosavedContentToChangesHistory = function(postContentId) {
+	this.pushContentToChangesHistory(postContentId, CHANGE_TYPE_AUTOSAVED);
+}
+
+schema.methods.pushFirstPublishedContentToChangesHistory = function(postContentId) {
+	this.pushContentToChangesHistory(postContentId, CHANGE_TYPE_FIRST_PUBLISHED);
+}
+
+schema.methods.pushPublishedChangesContentToChangesHistory = function(postContentId) {
+	this.pushContentToChangesHistory(postContentId, CHANGE_TYPE_PUBLISHED_CHANGES);	
 }
 
 /**
@@ -143,7 +154,7 @@ schema.methods.isShouldUpdateLastChange = function() {
 }
 
 schema.methods.updateLastChange = function(contentData, callback) {
-	const lastChange = this.lastChange()
+	const lastChange = this.getLastChange()
 	PostContent.updateInstanceById(lastChange._content, contentData, callback);
 }
 
@@ -151,13 +162,14 @@ schema.methods.createAutosavedChange = function(contentData, callback) {
 	waterfall([
 		cb => PostContent.create(contentData, cb),
 		(postContent, cb) => {
-			this.pushAutosavedContentToChangesHistory(postContent)
+			this._draftContent = postContent
+			this.pushAutosavedContentToChangesHistory(postContent.id)
 			cb()
 		} 
 	], callback)
 }
 
-schema.methods.editDraft = function(contentData, callback) {
+schema.methods.edit = function(contentData, callback) {
 	series([
 		cb => {
 			if(this.isShouldUpdateLastChange()) {
@@ -167,10 +179,62 @@ schema.methods.editDraft = function(contentData, callback) {
 			}			
 		},
 		cb => {
+			if(this.isPublic) {
+				this.hasUnpublishedChanges = true;
+			}
+
 			this.updateLastEditedDate()
 			this.save(cb)
 		}
-	], callback)
+	], err => {
+		if(err) {
+			return callback(err)
+		}
+
+		callback(null, this)
+	})
+}
+
+schema.methods.publish = function(callback) {
+	if(this.isPublic) {
+		this.pushPublishedChangesContentToChangesHistory(this._draftContent)
+	} else {
+		this.pushFirstPublishedContentToChangesHistory(this._draftContent)
+		this.isPublic = true;
+		this.firstPublishedDate = new Date();
+	}
+	
+	this.lastPublishedDate = new Date();
+	this.hasUnpublishedChanges = false;
+	this._publicContent = this._draftContent;
+
+	this.save(err => {
+		if(err) {
+			return callback(err)
+		}
+
+		callback(null, this)
+	})
+}
+
+schema.methods.formatDraftToClient = function(callback) {
+	this.populate('_draftContent _author', (err, post) => {
+		if(err) {
+			return callback(err)
+		}
+
+		callback(null, post.toObject({mode: 'draft'}))
+	})
+}
+
+schema.methods.formatPublicToClient = function(callback) {
+	this.populate('_publicContent _author', (err, post) => {
+		if(err) {
+			return callback(err)
+		}
+
+		callback(null, post.toObject())
+	})
 }
 
 /**
@@ -194,7 +258,7 @@ schema.statics.createDraft = (author, contentData, callback) => {
 				_draftContent: postContent.id 
 			})
 
-			post.pushAutosavedContentToChangesHistory(postContent)
+			post.pushAutosavedContentToChangesHistory(postContent.id)
 			post.updateLastEditedDate()
 
 			post.save(err => {
@@ -206,6 +270,28 @@ schema.statics.createDraft = (author, contentData, callback) => {
 			})
 		}
 	], callback)
+}
+
+if (!schema.options.toObject) schema.options.toObject = {};
+schema.options.toObject.transform = function (doc, ret, options) {
+
+	delete ret.updatedAt;
+	delete ret.createdAt;
+
+	ret.author = doc._author.toObject({mode: 'basic'})
+	delete ret._author;
+
+	if(options.mode === 'draft') {
+		ret.content = doc._draftContent.toObject();
+	} else {
+		ret.content = doc._publicContent.toObject();
+	}
+
+	delete ret._draftContent;
+	ret._publicContent && delete ret._publicContent;
+
+
+	return ret;
 }
 
 const Post = mongoose.model('Post', schema)

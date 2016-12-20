@@ -75,8 +75,22 @@ schema.methods.updateInstance = function(postContentData, callback) {
 schema.statics.updateInstanceById = (id, postContentData, callback) =>
 	waterfall([
 		cb => PostContent.findById(id, cb),
-		(postContent, cb) => postContent.updateInstance(postContent, cb)	
+		(postContent, cb) => postContent.updateInstance(postContentData, cb)	
 	], callback)
+
+
+if (!schema.options.toObject) schema.options.toObject = {};
+schema.options.toObject.transform = function (doc, ret, options) {
+
+	delete ret._id;
+	delete ret.updatedAt;
+	delete ret.createdAt;
+
+	ret.coverImage = ret._coverImage;
+	delete ret._coverImage;
+
+	return ret;
+}
 
 const PostContent = mongoose.model('PostContent', schema)
 

@@ -12,12 +12,12 @@ import parallel from 'async/parallel'
  * @param  {Function} respond - callback with bool result of check
  */
 export const emailUniqueValidator = function(email, respond) {
-    User.findOne({email}, (err, user) => {
-        if(err || user && user.id !== this.id) {
-            return respond(false)
-        }
-        respond(true)
-    })
+	User.findOne({email}, (err, user) => {
+		if(err || user && user.id !== this.id) {
+			return respond(false)
+		}
+		respond(true)
+	})
 }
 
 /**
@@ -28,12 +28,12 @@ export const emailUniqueValidator = function(email, respond) {
  * @param  {Function} respond - callback with bool result of check
  */
 export const usernameUniqueValidator = function(username, respond) {
-    User.findOne({username}, (err, user) => {
-        if(err || user && user.id !== this.id) {
-            return respond(false)
-        }
-        respond(true)
-    })
+	User.findOne({username}, (err, user) => {
+		if(err || user && user.id !== this.id) {
+			return respond(false)
+		}
+		respond(true)
+	})
 }
 
 const schema = new Schema({
@@ -41,61 +41,61 @@ const schema = new Schema({
 		type: String,
 		trim: true,
 		required: true,
-        validate: [{ 
-            validator: val => validator.isEmail(val),
-            message: 'Invalid `{PATH}` value ("{VALUE}")'
-        },{
-            validator: emailUniqueValidator,
-            message: 'Email is already existing'    
-        }]
+		validate: [{ 
+			validator: val => validator.isEmail(val),
+			message: 'Invalid `{PATH}` value ("{VALUE}")'
+		},{
+			validator: emailUniqueValidator,
+			message: 'Email is already existing'    
+		}]
 	},
 	username: {
 		type: String,
 		trim: true,
 		required: true,
 		maxlength: [20, 'Length should be not more than 20 characters'],
-        minlength: [5, 'Length should be not less than 5 characters'],
+		minlength: [5, 'Length should be not less than 5 characters'],
 		match: [
 			/^[a-z0-9._]+$/,
 			'Not allowed charaters in `{PATH}`'
 		],
-        validate: {
-            validator: usernameUniqueValidator,
-            message: 'Username is already existing'
-        }
+		validate: {
+			validator: usernameUniqueValidator,
+			message: 'Username is already existing'
+		}
 	},
 	fullName: {
 		type: String,
 		trim: true,
 	},
 	hashedPassword: {
-        type: String,
-        default: '' // run validation
-    },
-    salt: {
-        type: String
-    },
-    followers: [{
-        type: Schema.Types.ObjectId,
-        ref: 'User'
-    }],
-    following: [{
-        type: Schema.Types.ObjectId,
-        ref: 'User'
-    }]
+		type: String,
+		default: '' // run validation
+	},
+	salt: {
+		type: String
+	},
+	followers: [{
+		type: Schema.Types.ObjectId,
+		ref: 'User'
+	}],
+	following: [{
+		type: Schema.Types.ObjectId,
+		ref: 'User'
+	}]
 }, {
 	timestamps: true
 })
 
 schema.virtual('password')
-    .set(function(password) {
-        this._plainPassword = password
-        this.setSalt()
-        this.hashedPassword = this.encryptPassword(password)
-    })
-    .get(function() {
-        return this._plainPassword || '';
-    })
+	.set(function(password) {
+		this._plainPassword = password
+		this.setSalt()
+		this.hashedPassword = this.encryptPassword(password)
+	})
+	.get(function() {
+		return this._plainPassword || '';
+	})
 
 /*
    virtual fields do not provide a validation,
@@ -103,17 +103,17 @@ schema.virtual('password')
    assign errors to 'password' virtual field
  */
 schema.path('hashedPassword').validate(function() {
-    const { isNew , _plainPassword } = this
-    
-    if (isNew) {
-        if (!_plainPassword) {
-            this.invalidate('password', 'Password is required')
-        } else if(_plainPassword.length < 5) {
-            this.invalidate('password', 'Password length should be not less than 5 characters')
-        } else if(_plainPassword.length > 20) {
-            this.invalidate('password', 'Password length should be not more than 20 characters')
-        }
-    }
+	const { isNew , _plainPassword } = this
+	
+	if (isNew) {
+		if (!_plainPassword) {
+			this.invalidate('password', 'Password is required')
+		} else if(_plainPassword.length < 5) {
+			this.invalidate('password', 'Password length should be not less than 5 characters')
+		} else if(_plainPassword.length > 20) {
+			this.invalidate('password', 'Password length should be not more than 20 characters')
+		}
+	}
 }, null)
 
 /**
@@ -130,7 +130,7 @@ schema.methods.setSalt = function() {
  * @return {String}
  */
 schema.methods.encryptPassword = function(password) {
-    return crypto.createHmac('sha1', this.salt).update(password).digest('hex')
+	return crypto.createHmac('sha1', this.salt).update(password).digest('hex')
 }
 
 /**
@@ -140,7 +140,7 @@ schema.methods.encryptPassword = function(password) {
  * @return {Bool}
  */
 schema.methods.checkPassword = function(password) {
-    return this.encryptPassword(password) === this.hashedPassword
+	return this.encryptPassword(password) === this.hashedPassword
 }
 
 /**
@@ -150,10 +150,10 @@ schema.methods.checkPassword = function(password) {
  * @param  {Function}   callback
  */
 schema.methods.followTo = function(user, callback) {
-    series([
-        cb => this.pushToFollowing(user, cb),
-        cb => user.pushToFollowers(this, cb)
-    ], callback)
+	series([
+		cb => this.pushToFollowing(user, cb),
+		cb => user.pushToFollowers(this, cb)
+	], callback)
 }
 
 /**
@@ -163,10 +163,10 @@ schema.methods.followTo = function(user, callback) {
  * @param  {Function}   callback
  */
 schema.methods.unfollowTo = function(user, callback) {
-    series([
-        cb => this.pullFromFollowing(user, cb),
-        cb => user.pullFromFollowers(this, cb)
-    ], callback)
+	series([
+		cb => this.pullFromFollowing(user, cb),
+		cb => user.pullFromFollowers(this, cb)
+	], callback)
 }
 
 /**
@@ -176,13 +176,13 @@ schema.methods.unfollowTo = function(user, callback) {
  * @param  {Function} callback
  */
 schema.methods.pushToFollowing = function(followingUser, callback) {
-    this.following.push(followingUser)
-    this.save(err => {
-        if(err) {
-            return callback(err);
-        }
-        callback(null, followingUser);
-    })
+	this.following.push(followingUser)
+	this.save(err => {
+		if(err) {
+			return callback(err);
+		}
+		callback(null, followingUser);
+	})
 }
 
 /**
@@ -192,13 +192,13 @@ schema.methods.pushToFollowing = function(followingUser, callback) {
  * @param  {Function} callback
  */
 schema.methods.pullFromFollowing = function(followingUser, callback) {
-    this.following.pull(followingUser)
-    this.save(err => {
-        if(err) {
-            return callback(err);
-        }
-        callback(null, followingUser);
-    })
+	this.following.pull(followingUser)
+	this.save(err => {
+		if(err) {
+			return callback(err);
+		}
+		callback(null, followingUser);
+	})
 }
 
 /**
@@ -208,13 +208,13 @@ schema.methods.pullFromFollowing = function(followingUser, callback) {
  * @param  {Function} callback
  */
 schema.methods.pushToFollowers = function(follower, callback) {
-    this.followers.push(follower)
-    this.save(err => {
-        if(err) {
-            return callback(err);
-        }
-        callback(null, follower);
-    })
+	this.followers.push(follower)
+	this.save(err => {
+		if(err) {
+			return callback(err);
+		}
+		callback(null, follower);
+	})
 }
 
 /**
@@ -224,30 +224,29 @@ schema.methods.pushToFollowers = function(follower, callback) {
  * @param  {Function} callback
  */
 schema.methods.pullFromFollowers = function(follower, callback) {
-    this.followers.pull(follower);
-    this.save(err => {
-        if(err) {
-            return callback(err)
-        }
-        callback(null, follower);
-    })
+	this.followers.pull(follower);
+	this.save(err => {
+		if(err) {
+			return callback(err)
+		}
+		callback(null, follower);
+	})
 }
 
 if (!schema.options.toObject) schema.options.toObject = {};
 schema.options.toObject.transform = function (doc, ret, options) {
-    // remove the _id of every document before returning the result
-    delete ret._id;
-    delete ret.salt;
-    delete ret.hashedPassword;
-    delete ret.updatedAt;
-    delete ret.createdAt;
 
-    if(options.mode && options.mode === 'basic') {
-        delete ret.following;
-        delete ret.followers;
-    }
+	delete ret.salt;
+	delete ret.hashedPassword;
+	delete ret.updatedAt;
+	delete ret.createdAt;
 
-    return ret;
+	if(options.mode && options.mode === 'basic') {
+		delete ret.following;
+		delete ret.followers;
+	}
+
+	return ret;
 }
 
 const User = mongoose.model('User', schema)

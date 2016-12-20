@@ -15,7 +15,7 @@ const generate = (user, callback) => {
 		// expiresIn: 60 * 60 * 2 // 2 hours expire
 	}
 
-	jwt.sign(u, 'secretToken', options, callback)
+	jwt.sign(u, secretToken, options, callback)
 }
 
 const verify = (token, callback) => {

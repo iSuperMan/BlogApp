@@ -1,14 +1,20 @@
 import express from 'express'
+import authControl from '../../middlewares/authControl'
 import bodyClean from '../../middlewares/bodyClean'
 import User from '../../models/user'
+import { HttpError } from '../../error'
 import authToken from '../../libs/authToken'
 
 const router = express.Router()
 
-router.get('/test', [
+export default router
+
+router.get('/initialization', [
+	authControl,
+
 	(req, res, next) => {
-		res.sendResponse({
-			hello: 'world'
+		return res.sendResponse({
+			user: req.auth.toObject({mode: 'basic'})
 		})
 	}
 ])
@@ -79,5 +85,3 @@ router.post('/signup', [
 		})
 	},
 ])
-
-export default router
